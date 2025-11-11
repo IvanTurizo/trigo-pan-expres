@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
 import { z } from "zod";
-import { DebugAuth } from "@/components/DebugAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").max(255),
@@ -126,9 +125,8 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <div className="flex items-center justify-center">
-        <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-serif">Trigo Pan Expres</CardTitle>
           <CardDescription>Panel de Administración</CardDescription>
@@ -219,9 +217,7 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-        </Card>
-      </div>
-      <DebugAuth />
+      </Card>
     </div>
   );
 };

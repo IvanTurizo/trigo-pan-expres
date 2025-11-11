@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { checkUserPermissions, ensureFirstUserIsAdmin } from "@/utils/permissions";
 
 
 interface AuthContextType {
@@ -62,19 +63,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkAdminRole = async (userId: string) => {
     setAdminLoading(true);
     try {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
+      // First ensure the first user becomes admin
+      await ensureFirstUserIsAdmin(userId);
       
-      const adminStatus = !!data;
+      // Then check permissions
+      const { isAdmin: adminStatus, error } = await checkUserPermissions(userId);
+      
+      if (error) {
+        console.error("Permission check failed:", error);
+        setIsAdmin(false);
+        localStorage.setItem('isAdmin', 'false');
+        return;
+      }
+      
       setIsAdmin(adminStatus);
-      // Persist to localStorage
       localStorage.setItem('isAdmin', adminStatus.toString());
     } catch (error) {
-      console.error("Error checking admin role:", error);
+      console.error("Error in admin role check:", error instanceof Error ? error.message : 'Unknown error');
       setIsAdmin(false);
       localStorage.setItem('isAdmin', 'false');
     } finally {
@@ -90,15 +95,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) {
-        console.error("Sign in error:", error);
+        console.error("Sign in error:", error.message || 'Authentication failed');
         return { error };
       }
       
       // Don't navigate here, let the auth state change handle it
       return { error: null };
     } catch (error) {
-      console.error("Sign in catch error:", error);
-      return { error };
+      console.error("Sign in catch error:", error instanceof Error ? error.message : 'Unknown error');
+      return { error: error instanceof Error ? error : new Error('Authentication failed') };
     }
   };
 
@@ -116,14 +121,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) {
-        console.error("Sign up error:", error);
+        console.error("Sign up error:", error.message || 'Registration failed');
         return { error };
       }
       
       return { error: null };
     } catch (error) {
-      console.error("Sign up catch error:", error);
-      return { error };
+      console.error("Sign up catch error:", error instanceof Error ? error.message : 'Unknown error');
+      return { error: error instanceof Error ? error : new Error('Registration failed') };
     }
   };
 

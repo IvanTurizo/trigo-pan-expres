@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { makeUserAdmin, checkUserRoles } from "@/utils/adminSetup";
+import { checkUserPermissions } from "@/utils/permissions";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export const AdminSetup = () => {
@@ -15,23 +16,30 @@ export const AdminSetup = () => {
 
     setLoading(true);
     try {
-      const result = await makeUserAdmin(user.id);
-      
-      if (result.success) {
-        toast({
-          title: "Éxito",
-          description: result.message,
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: user.id,
+          role: "admin"
         });
-        // Reload the page to refresh auth context
-        window.location.reload();
-      } else {
+      
+      if (error) {
+        console.error("Admin assignment error:", error.message);
         toast({
           title: "Error",
-          description: "No se pudo asignar el rol de administrador",
-          variant: "destructive",
+          description: error.message.includes("duplicate") ? "Ya eres administrador" : "No se pudo asignar el rol",
+          variant: error.message.includes("duplicate") ? "default" : "destructive",
         });
+      } else {
+        toast({
+          title: "Éxito",
+          description: "Rol de administrador asignado correctamente",
+        });
+        // Reload to refresh auth context
+        setTimeout(() => window.location.reload(), 1000);
       }
     } catch (error) {
+      console.error("Make admin error:", error instanceof Error ? error.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Error al asignar rol de administrador",
@@ -47,16 +55,27 @@ export const AdminSetup = () => {
 
     setLoading(true);
     try {
-      const result = await checkUserRoles(user.id);
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("*")
+        .eq("user_id", user.id);
       
-      if (result.success) {
-        setRoles(result.roles || []);
+      if (error) {
+        console.error("Role check error:", error.message);
+        toast({
+          title: "Error",
+          description: "Error al verificar roles",
+          variant: "destructive",
+        });
+      } else {
+        setRoles(data || []);
         toast({
           title: "Roles verificados",
-          description: `Encontrados ${result.roles?.length || 0} roles`,
+          description: `Encontrados ${data?.length || 0} roles`,
         });
       }
     } catch (error) {
+      console.error("Check roles error:", error instanceof Error ? error.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Error al verificar roles",
