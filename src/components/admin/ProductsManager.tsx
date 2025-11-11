@@ -43,6 +43,8 @@ const productSchema = z.object({
 
 export const ProductsManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [query, setQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -206,11 +208,39 @@ export const ProductsManager = () => {
     return <div>Cargando productos...</div>;
   }
 
+  const filteredProducts = products.filter((p) => {
+    const matchesQuery = query === "" || p.name.toLowerCase().includes(query.toLowerCase()) || (p.description || "").toLowerCase().includes(query.toLowerCase());
+    const matchesCategory = filterCategory === "" || p.category === filterCategory;
+    return matchesQuery && matchesCategory;
+  });
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-serif font-bold">Productos</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <h2 className="text-3xl font-serif font-bold">Productos</h2>
+          <div className="hidden md:block text-sm text-muted-foreground">Gestiona inventario, precios y visibilidad</div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <div className="w-full sm:w-64">
+            <Input placeholder="Buscar productos..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas las categorías" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="pan">Pan</SelectItem>
+                <SelectItem value="pasteles">Pasteles</SelectItem>
+                <SelectItem value="pasteleria">Pastelería</SelectItem>
+                <SelectItem value="bebidas">Bebidas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm} className="gap-2">
               <Plus className="h-4 w-4" />
@@ -291,9 +321,9 @@ export const ProductsManager = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <Card key={product.id} className={!product.is_active ? "opacity-60" : ""}>
-            <div className="aspect-square overflow-hidden">
+        {filteredProducts.map((product) => (
+          <Card key={product.id} className={`overflow-hidden transition-shadow hover:shadow-lg ${!product.is_active ? "opacity-60" : ""}`}>
+            <div className="h-48 md:h-40 w-full overflow-hidden bg-gray-100">
               <img
                 src={product.image_url}
                 alt={product.name}
@@ -301,18 +331,28 @@ export const ProductsManager = () => {
               />
             </div>
             <CardContent className="p-4">
-              <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
-              {product.description && (
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {product.description}
-                </p>
-              )}
-              <p className="text-primary font-bold">
-                ${Number(product.price).toLocaleString("es-CO")} COP
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 capitalize">
-                {product.category}
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                  {product.description && (
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                      {product.description}
+                    </p>
+                  )}
+                  <p className="text-primary font-bold">
+                    ${Number(product.price).toLocaleString("es-CO")} COP
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 capitalize">
+                    {product.category}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Estado</div>
+                  <div className={`text-sm font-semibold ${product.is_active ? 'text-green-600' : 'text-rose-600'}`}>
+                    {product.is_active ? 'Activo' : 'Oculto'}
+                  </div>
+                </div>
+              </div>
             </CardContent>
             <CardFooter className="p-4 pt-0 flex gap-2">
               <Button

@@ -36,6 +36,9 @@ interface Order {
 export const OrdersManager = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadOrders();
@@ -112,6 +115,20 @@ export const OrdersManager = () => {
     return <div>Cargando pedidos...</div>;
   }
 
+  const filteredOrders = orders.filter(o => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      o.customer_name.toLowerCase().includes(q) ||
+      o.customer_email.toLowerCase().includes(q) ||
+      String(o.customer_phone).toLowerCase().includes(q) ||
+      (Array.isArray(o.items) && o.items.some((it: any) => String(it.name).toLowerCase().includes(q)))
+    );
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+  const paginatedOrders = filteredOrders.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div>
       <h2 className="text-3xl font-serif font-bold mb-6">Pedidos</h2>
@@ -124,7 +141,25 @@ export const OrdersManager = () => {
           </p>
         </Card>
       ) : (
-        <div className="border rounded-lg overflow-auto">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <div className="w-full sm:w-64">
+              <input
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="Buscar por cliente, email o producto..."
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-muted-foreground">Página {page} / {pageCount}</div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p-1))} disabled={page<=1}>Prev</Button>
+                <Button size="sm" onClick={() => setPage(p => Math.min(pageCount, p+1))} disabled={page>=pageCount}>Next</Button>
+              </div>
+            </div>
+          </div>
+          <div className="border rounded-lg overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -138,7 +173,7 @@ export const OrdersManager = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>
                     {new Date(order.created_at).toLocaleDateString("es-CO", {
@@ -199,6 +234,7 @@ export const OrdersManager = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
     </div>

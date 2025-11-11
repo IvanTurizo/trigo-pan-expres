@@ -35,6 +35,8 @@ export const DashboardStats = () => {
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSales[]>([]);
   const [ordersByStatus, setOrdersByStatus] = useState<OrdersByStatus[]>([]);
+  const [showVentas, setShowVentas] = useState(true);
+  const [showPedidos, setShowPedidos] = useState(true);
 
   useEffect(() => {
     loadStats();
@@ -199,7 +201,23 @@ export const DashboardStats = () => {
         {/* Gráfica de ventas diarias */}
         <Card>
           <CardHeader>
-            <CardTitle>Ventas de los Últimos 7 Días</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Ventas de los Últimos 7 Días</CardTitle>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`px-2 py-1 rounded text-sm ${showVentas ? 'bg-primary text-white' : 'bg-gray-100 text-muted-foreground'}`}
+                  onClick={() => setShowVentas(s => !s)}
+                >
+                  Ventas
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-sm ${showPedidos ? 'bg-primary text-white' : 'bg-gray-100 text-muted-foreground'}`}
+                  onClick={() => setShowPedidos(s => !s)}
+                >
+                  Pedidos
+                </button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -215,22 +233,26 @@ export const DashboardStats = () => {
                   }}
                 />
                 <Legend />
-                <Line 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="ventas" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={2}
-                  name="Ventas (COP)"
-                />
-                <Line 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="pedidos" 
-                  stroke="#10b981" 
-                  strokeWidth={2}
-                  name="Número de Pedidos"
-                />
+                {showVentas && (
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="ventas" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    name="Ventas (COP)"
+                  />
+                )}
+                {showPedidos && (
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="pedidos" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    name="Número de Pedidos"
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
