@@ -46,6 +46,7 @@ export const ProductsManager = () => {
   const [query, setQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -62,18 +63,27 @@ export const ProductsManager = () => {
 
   const loadProducts = async () => {
     try {
+      setError(null);
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        setError(error.message);
+        throw error;
+      }
+      
       setProducts(data || []);
     } catch (error) {
       console.error("Error loading products:", error);
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: "No se pudieron cargar los productos",
+        description: `No se pudieron cargar los productos: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -204,8 +214,89 @@ export const ProductsManager = () => {
     }
   };
 
+  const createSampleProducts = async () => {
+    const sampleProducts = [
+      {
+        name: "Pan Integral",
+        description: "Pan artesanal integral con semillas",
+        price: 3500,
+        image_url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400",
+        category: "pan",
+        is_active: true
+      },
+      {
+        name: "Croissant de Mantequilla",
+        description: "Croissant francés tradicional",
+        price: 2800,
+        image_url: "https://images.unsplash.com/photo-1555507036-ab794f4afe5b?w=400",
+        category: "pasteleria",
+        is_active: true
+      },
+      {
+        name: "Torta de Chocolate",
+        description: "Deliciosa torta de chocolate con crema",
+        price: 45000,
+        image_url: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400",
+        category: "pasteles",
+        is_active: true
+      },
+      {
+        name: "Café Americano",
+        description: "Café negro recién preparado",
+        price: 2500,
+        image_url: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=400",
+        category: "bebidas",
+        is_active: true
+      }
+    ];
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .insert(sampleProducts);
+
+      if (error) throw error;
+
+      toast({
+        title: "Productos creados",
+        description: "Se agregaron 4 productos de ejemplo",
+      });
+      loadProducts();
+    } catch (error) {
+      console.error("Error creating sample products:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron crear los productos de ejemplo",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
-    return <div>Cargando productos...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>Cargando productos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <h3 className="text-lg font-semibold mb-2 text-red-600">Error al cargar productos</h3>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <Button onClick={loadProducts} variant="outline">
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const filteredProducts = products.filter((p) => {
@@ -317,7 +408,8 @@ export const ProductsManager = () => {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -392,14 +484,31 @@ export const ProductsManager = () => {
         ))}
       </div>
 
-      {products.length === 0 && (
+      {filteredProducts.length === 0 && products.length === 0 && !error && (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">
-            No hay productos todavía. Crea tu primer producto.
+            No hay productos todavía. Crea tu primer producto o agrega productos de ejemplo.
           </p>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Crear Producto
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Crear Producto
+            </Button>
+            <Button onClick={createSampleProducts} variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Agregar Ejemplos
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {filteredProducts.length === 0 && products.length > 0 && (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">
+            No se encontraron productos con los filtros aplicados.
+          </p>
+          <Button onClick={() => { setQuery(""); setFilterCategory(""); }} variant="outline">
+            Limpiar Filtros
           </Button>
         </Card>
       )}
