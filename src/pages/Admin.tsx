@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminSetup } from "@/components/admin/AdminSetup";
 
 const Admin = () => {
   const { user, loading, isAdmin } = useAuth();
@@ -18,14 +19,7 @@ const Admin = () => {
   }
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Acceso Denegado</h1>
-          <p className="text-muted-foreground">No tienes permisos de administrador</p>
-        </div>
-      </div>
-    );
+    return <AdminSetup />;
   }
 
   return <AdminDashboard />;
