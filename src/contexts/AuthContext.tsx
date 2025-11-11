@@ -19,7 +19,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    // Initialize from localStorage if available
+    const stored = localStorage.getItem('isAdmin');
+    return stored === 'true';
+  });
+  const [adminLoading, setAdminLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,13 +34,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer role check
+        // Check admin role
         if (session?.user) {
-          setTimeout(() => {
-            checkAdminRole(session.user.id);
-          }, 0);
+          checkAdminRole(session.user.id);
         } else {
           setIsAdmin(false);
+          localStorage.setItem('isAdmin', 'false');
         }
       }
     );
@@ -46,9 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setTimeout(() => {
-          checkAdminRole(session.user.id);
-        }, 0);
+        checkAdminRole(session.user.id);
       }
       
       setLoading(false);
@@ -58,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkAdminRole = async (userId: string) => {
+    setAdminLoading(true);
     try {
       const { data } = await supabase
         .from("user_roles")
@@ -66,10 +69,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq("role", "admin")
         .maybeSingle();
       
-      setIsAdmin(!!data);
+      const adminStatus = !!data;
+      setIsAdmin(adminStatus);
+      // Persist to localStorage
+      localStorage.setItem('isAdmin', adminStatus.toString());
     } catch (error) {
       console.error("Error checking admin role:", error);
       setIsAdmin(false);
+      localStorage.setItem('isAdmin', 'false');
+    } finally {
+      setAdminLoading(false);
     }
   };
 
@@ -104,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    localStorage.setItem('isAdmin', 'false');
     navigate("/");
   };
 

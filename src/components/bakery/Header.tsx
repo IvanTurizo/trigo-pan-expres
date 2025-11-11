@@ -66,7 +66,7 @@ export const Header = ({ onCartClick }: HeaderProps) => {
           </div>
 
           <div className="flex items-center gap-2">
-            {isAdmin && (
+            {user && isAdmin && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -141,7 +141,7 @@ export const Header = ({ onCartClick }: HeaderProps) => {
             >
               Contacto
             </button>
-            {isAdmin && (
+            {user && isAdmin && (
               <button
                 onClick={() => {
                   navigate("/admin");
