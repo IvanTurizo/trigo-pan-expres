@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return stored === 'true';
   });
   const [adminLoading, setAdminLoading] = useState(false);
-  const navigate = useNavigate();
+
 
   useEffect(() => {
     // Set up auth state listener
@@ -83,38 +83,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (!error) {
-      navigate("/");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error("Sign in error:", error);
+        return { error };
+      }
+      
+      // Don't navigate here, let the auth state change handle it
+      return { error: null };
+    } catch (error) {
+      console.error("Sign in catch error:", error);
+      return { error };
     }
-    
-    return { error };
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    });
-    
-    return { error };
+      });
+      
+      if (error) {
+        console.error("Sign up error:", error);
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      console.error("Sign up catch error:", error);
+      return { error };
+    }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
     localStorage.setItem('isAdmin', 'false');
-    navigate("/");
   };
 
   return (

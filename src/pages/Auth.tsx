@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
 import { z } from "zod";
+import { DebugAuth } from "@/components/DebugAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").max(255),
@@ -21,6 +23,13 @@ const signupSchema = loginSchema.extend({
 const Auth = () => {
   const { user, signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
@@ -67,6 +76,7 @@ const Auth = () => {
         title: "Bienvenido",
         description: "Has iniciado sesión correctamente",
       });
+      // Navigation will be handled by useEffect
     }
     
     setLoading(false);
@@ -116,8 +126,9 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
+      <div className="flex items-center justify-center">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-serif">Trigo Pan Expres</CardTitle>
           <CardDescription>Panel de Administración</CardDescription>
@@ -208,7 +219,9 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
+      <DebugAuth />
     </div>
   );
 };
