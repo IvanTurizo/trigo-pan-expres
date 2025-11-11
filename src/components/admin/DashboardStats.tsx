@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, DollarSign, TrendingUp, Clock, CheckCircle, XCircle, TrendingDown } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { Json } from "@/integrations/supabase/types";
+
+interface OrderItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  price: number;
+  [key: string]: unknown;
+}
+
+const isOrderItemArray = (v: unknown): v is OrderItem[] => {
+  return Array.isArray(v) && v.every(item => item && typeof (item as Record<string, unknown>).name === 'string');
+}
 
 interface DailySales {
   date: string;
@@ -91,7 +104,7 @@ export const DashboardStats = () => {
       const productSalesMap = new Map<string, { cantidad: number; ingresos: number }>();
       
       orders.forEach(order => {
-        const items = order.items as any[];
+        const items = isOrderItemArray(order.items) ? order.items : ([] as OrderItem[]);
         items.forEach(item => {
           const existing = productSalesMap.get(item.name) || { cantidad: 0, ingresos: 0 };
           productSalesMap.set(item.name, {

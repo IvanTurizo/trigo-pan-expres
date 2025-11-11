@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,11 +27,23 @@ interface Order {
   customer_email: string;
   customer_phone: string;
   delivery_address: string | null;
-  items: any;
+  items: OrderItem[] | Json;
   total: number;
   status: string;
   notes: string | null;
   created_at: string;
+}
+
+interface OrderItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  price: number;
+  [key: string]: unknown;
+}
+
+const isOrderItemArray = (v: unknown): v is OrderItem[] => {
+  return Array.isArray(v) && v.every(item => item && typeof (item as Record<string, unknown>).name === 'string');
 }
 
 export const OrdersManager = () => {
@@ -90,7 +103,7 @@ export const OrdersManager = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
+    const variants: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       pending: "outline",
       confirmed: "default",
       completed: "secondary",
@@ -118,11 +131,12 @@ export const OrdersManager = () => {
   const filteredOrders = orders.filter(o => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
+    const itemsMatch = isOrderItemArray(o.items) && o.items.some(it => String(it.name).toLowerCase().includes(q));
     return (
       o.customer_name.toLowerCase().includes(q) ||
       o.customer_email.toLowerCase().includes(q) ||
       String(o.customer_phone).toLowerCase().includes(q) ||
-      (Array.isArray(o.items) && o.items.some((it: any) => String(it.name).toLowerCase().includes(q)))
+      itemsMatch
     );
   });
 
@@ -202,13 +216,16 @@ export const OrdersManager = () => {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {Array.isArray(order.items) &&
-                        order.items.map((item: any, idx: number) => (
-                          <div key={idx}>
-                            {item.quantity}x {item.name}
-                          </div>
-                        ))}
-                    </div>
+                        {isOrderItemArray(order.items) ? (
+                          order.items.map((item, idx) => (
+                            <div key={idx}>
+                              {item.quantity}x {item.name}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-muted-foreground">Sin detalle de items</div>
+                        )}
+                      </div>
                   </TableCell>
                   <TableCell className="font-bold">
                     ${Number(order.total).toLocaleString("es-CO")} COP
